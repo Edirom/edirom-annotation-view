@@ -13,8 +13,69 @@ const templates = {
 
     mobile: `<div>
     <style>
-        #annotation-view-container > *{
+        :host {
+            --primary-color: #a3a3a3ff;
+            --secondary-color: #565656ff;
+            height: 100%;
             width: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            overflow-y: auto;
+            overflow-x: auto;
+            display: block;
+        }
+
+        #annotation-view-container {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        #annotations-header {
+            text-align: center;
+            font-size: 1.4rem;
+        }
+
+        #annotations-container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: stretch;
+        }
+        .pos-col {
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border-right: 1px solid #ccc;
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
+            background-color: #f9f9f9;
+        }
+        .content-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .title-row {
+            border-bottom: 1px solid #ccc;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .details-row {
+            display: flex;
+            flex-direction: row;
+            padding: 10px;
+        }
+        .details-item {
+            flex: 1;
+            text-align: center;
+            font-size: 0.9rem;
         }
     </style>
     <div id="annotation-view-container">
@@ -77,56 +138,67 @@ class annotationViewElement extends HTMLElement {
     }
 
     renderAnnotations = () => {
-        this.containerElement = this.shadow.getElementById("annotation-view-container");
-        this.containerElement.innerHTML = '';
-        const table = document.createElement('table');
-        const thead = document.createElement('thead');
-        const tr = document.createElement('tr');
-        const headers = ['Nr.', 'Titel', 'Kategorien', 'Priorität', 'Quelle'];
+        const container = this.shadow.getElementById("annotation-view-container");
+        if (!container) return;
+        container.innerHTML = '';
 
-        headers.forEach(header => {
-            const th = document.createElement('th');
-            th.textContent = header;
-            tr.appendChild(th);
-        });
+        if (this.mode === 'mobile') {
+            let annotationsHeader = document.createElement('h2');
+            annotationsHeader.textContent = 'Anmerkungen';
+            annotationsHeader.id = 'annotations-header';
+            container.appendChild(annotationsHeader);
+            let annotationsContainerElement = document.createElement('div');
+            annotationsContainerElement.id = 'annotations-container';
+            this.annotationsData.forEach(annotation => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="pos-col">${annotation.pos}</div>
+                    <div class="content-col">
+                        <div class="title-row">${annotation.title}</div>
+                        <div class="details-row">
+                            <div class="details-item">${annotation.categories}</div>
+                            <div class="details-item">${annotation.priority}</div>
+                            <div class="details-item">${annotation.sigla}</div>
+                        </div>
+                    </div>
+                `;
+                annotationsContainerElement.appendChild(card);
+            });
+            container.appendChild(annotationsContainerElement);
+        } else {
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
 
-        thead.appendChild(tr);
-        table.appendChild(thead);
+            const thead = document.createElement('thead');
+            const tr = document.createElement('tr');
+            ['Nr.', 'Titel', 'Kategorien', 'Priorität', 'Quelle'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                th.style.border = '1px solid #ccc';
+                th.style.padding = '8px';
+                th.style.textAlign = 'left';
+                tr.appendChild(th);
+            });
+            thead.appendChild(tr);
+            table.appendChild(thead);
 
-        const tbody = document.createElement('tbody');
-        this.annotationsData.forEach(annotation => {
-            const row = document.createElement('tr');
-
-            // Nr. (pos)
-            const posTd = document.createElement('td');
-            posTd.textContent = annotation.pos;
-            row.appendChild(posTd);
-
-            // Titel (title)
-            const titleTd = document.createElement('td');
-            titleTd.textContent = annotation.title;
-            row.appendChild(titleTd);
-
-            // Kategorien (categories)
-            const categoriesTd = document.createElement('td');
-            categoriesTd.textContent = annotation.categories;
-            row.appendChild(categoriesTd);
-
-            // Priorität (priority)
-            const priorityTd = document.createElement('td');
-            priorityTd.textContent = annotation.priority;
-            row.appendChild(priorityTd);
-
-            // Quelle (sigla)
-            const siglaTd = document.createElement('td');
-            siglaTd.textContent = annotation.sigla;
-            row.appendChild(siglaTd);
-
-            tbody.appendChild(row);
-        });
-
-        table.appendChild(tbody);
-        this.containerElement.appendChild(table);
+            const tbody = document.createElement('tbody');
+            this.annotationsData.forEach(annotation => {
+                const row = document.createElement('tr');
+                [annotation.pos, annotation.title, annotation.categories, annotation.priority, annotation.sigla].forEach(text => {
+                    const td = document.createElement('td');
+                    td.textContent = text;
+                    td.style.border = '1px solid #ccc';
+                    td.style.padding = '8px';
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
     }
 }
 
