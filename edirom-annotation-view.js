@@ -41,20 +41,21 @@ const templates = {
         }
         .card {
             border: 1px solid #ccc;
-            border-radius: 20px;
-            margin-bottom: 10px;
+            border-radius: 15px;
+            margin-bottom: 15px;
             display: flex;
             align-items: stretch;
+            box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;
         }
         .pos-col {
-            width: 50px;
+            min-width: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.1rem;
             border-right: 1px solid #ccc;
-            border-top-left-radius: 20px;
-            border-bottom-left-radius: 20px;
+            border-top-left-radius: 15px;
+            border-bottom-left-radius: 15px;
             background-color: #f9f9f9;
         }
         .content-col {
@@ -76,6 +77,12 @@ const templates = {
             flex: 1;
             text-align: center;
             font-size: 0.9rem;
+        }
+        .details-item:first-child {
+            text-align: left;
+        }
+        .details-item:last-child {
+            text-align: right;
         }
     </style>
     <div id="annotation-view-container">
@@ -158,7 +165,7 @@ class annotationViewElement extends HTMLElement {
                         <div class="title-row">${annotation.title}</div>
                         <div class="details-row">
                             <div class="details-item">${annotation.categories}</div>
-                            <div class="details-item">${annotation.priority}</div>
+                            <div class="details-item">Prio. ${annotation.priority}</div>
                             <div class="details-item">${annotation.sigla}</div>
                         </div>
                     </div>
