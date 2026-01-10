@@ -5,6 +5,16 @@ const templates = {
     desktop: `
 <div>
     <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+            vertical-align: middle;
+        }
     </style>
     <div id="annotation-view-container">
     </div>
@@ -72,14 +82,21 @@ const templates = {
             display: flex;
             flex-direction: row;
             padding: 10px;
+            align-items: center;
         }
         .details-item {
             flex: 1;
-            text-align: center;
             font-size: 0.9rem;
+        }
+        .details-item edirom-icon {
+            vertical-align: middle;
+            margin-right: 2px;
         }
         .details-item:first-child {
             text-align: left;
+        }
+        .details-item:nth-child(2) {
+            text-align: center;
         }
         .details-item:last-child {
             text-align: right;
@@ -166,7 +183,7 @@ class annotationViewElement extends HTMLElement {
                         <div class="details-row">
                             <div class="details-item">${annotation.categories}</div>
                             <div class="details-item">Prio. ${annotation.priority}</div>
-                            <div class="details-item">${annotation.sigla}</div>
+                            <div class="details-item"><edirom-icon name='description' color="rgba(0, 0, 0, 0.2)" size="20"></edirom-icon>${annotation.sigla}</div>
                         </div>
                     </div>
                 `;
