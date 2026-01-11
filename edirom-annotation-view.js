@@ -139,12 +139,15 @@ class annotationViewElement extends HTMLElement {
         this.shadow = this.attachShadow({ mode: "open" });
         this.annotationsData = [];
         this.annotationData = {};
+        // Image server type: 'openseadragon' (IIIF) or 'digilib'
+        // Defaults to 'openseadragon' if not specified
+        this.imageServer = this.getAttribute('image-server') || 'openseadragon';
 
         // Event Listeners
     }
 
     static get observedAttributes() {
-        return ['layout-mode', 'annotations-data', 'annotation-data'];
+        return ['layout-mode', 'annotations-data', 'annotation-data', 'image-server'];
     }
 
 
@@ -176,6 +179,13 @@ class annotationViewElement extends HTMLElement {
         else if (name === "annotation-data") {
             this.annotationData = JSON.parse(newValue);
             this.renderAnnotation();
+        }
+        else if (name === "image-server") {
+            // Update image server type and re-render if annotation data exists
+            this.imageServer = newValue || 'openseadragon';
+            if (Object.keys(this.annotationData).length > 0) {
+                this.renderAnnotation();
+            }
         }
 
     }
@@ -301,15 +311,30 @@ class annotationViewElement extends HTMLElement {
                     let previewImageElement = document.createElement('img');
                     previewImageElement.classList.add('preview-image');
 
-                    // Construct the IIIF Image API URL for the preview image
-                    // Format: {baseUrl}/{x},{y},{width},{height}/{size},/0/default.jpg
-                    // - digilibBaseParams: Base URL of the IIIF image server (e.g., "https://digital.blb-karlsruhe.de/blbihd/i3f/v20/6295251")
-                    // - hiddenData contains the region coordinates (x, y) and dimensions (width, height) for cropping
-                    // - 600 is the target width for the scaled image (height is proportional)
-                    // - /0/default.jpg specifies no rotation, default quality, and JPEG format
-                    const { x, y, width, height } = preview.hiddenData;
+                    // Build the image URL based on the configured image server type
+                    // The two supported servers use different URL formats:
                     const previewImageSize = 600; // Target width in pixels for preview images
-                    const imageSrc = `${preview.digilibBaseParams}/${x},${y},${width},${height}/${previewImageSize},/0/default.jpg`;
+                    let imageSrc;
+
+                    if (this.imageServer === 'digilib') {
+                        // Digilib URL format:
+                        // {digilibBaseParams}dw={width}&dh={height}{digilibSizeParams}
+                        // - digilibBaseParams: Base URL with query parameters (ends with ? or &)
+                        // - dw/dh: Target display dimensions
+                        // - digilibSizeParams: Additional params for region selection (wx, wy, ww, wh, mo)
+                        imageSrc = `${preview.digilibBaseParams}dw=${previewImageSize}&dh=${previewImageSize}${preview.digilibSizeParams}`;
+                    } else {
+                        // OpenSeadragon / IIIF Image API URL format:
+                        // {baseUrl}/{x},{y},{width},{height}/{size},/0/default.jpg
+                        // - digilibBaseParams: Base URL of the IIIF image server
+                        //   (e.g., "https://digital.blb-karlsruhe.de/blbihd/i3f/v20/6295251")
+                        // - hiddenData contains the region coordinates (x, y) and dimensions (width, height)
+                        // - size: Target width (height is proportional, indicated by trailing comma)
+                        // - 0: No rotation
+                        // - default.jpg: Default quality, JPEG format
+                        const { x, y, width, height } = preview.hiddenData;
+                        imageSrc = `${preview.digilibBaseParams}/${x},${y},${width},${height}/${previewImageSize},/0/default.jpg`;
+                    }
 
                     previewImageElement.src = imageSrc;
                     previewImageElement.alt = `${preview.siglum}: ${preview.label}`;
