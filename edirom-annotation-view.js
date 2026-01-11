@@ -118,6 +118,13 @@ const templates = {
             padding-top: 0;
         }
 
+        #annotation-detail-container h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 19px;
+            margin-bottom: 8px;
+        }
+
         #annotation-detail-container .preview-image {
             max-width: 100%;
             height: auto;
@@ -302,7 +309,7 @@ class annotationViewElement extends HTMLElement {
             this.annotationData.previews.forEach(preview => {
                 let previewContainerElement = document.createElement('div');
                 previewContainerElement.className = 'preview-container';
-                let previewHeaderElement = document.createElement('h3');
+                let previewHeaderElement = document.createElement('h2');
                 previewHeaderElement.textContent = `${preview.siglum} (${preview.source}) ${preview.label}`;
                 previewContainerElement.appendChild(previewHeaderElement);
 
