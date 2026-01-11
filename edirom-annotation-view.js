@@ -119,7 +119,7 @@ const templates = {
         }
 
         #annotation-detail-container h2 {
-            font-size: 1.1rem;
+            font-size: 1.0rem;
             font-weight: 500;
             margin-top: 19px;
             margin-bottom: 8px;
