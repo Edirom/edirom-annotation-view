@@ -56,6 +56,7 @@ const templates = {
             display: flex;
             align-items: stretch;
             box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;
+            cursor: pointer;
         }
         .pos-col {
             min-width: 30px;
@@ -101,6 +102,28 @@ const templates = {
         .details-item:last-child {
             text-align: right;
         }
+
+        #annotation-detail-container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        #annotation-detail-container h1 {
+            font-size: 1.3rem;
+            text-align: center;
+            margin-bottom: 13px;
+        }
+        #annotation-detail-container .details-row {
+            color: rgba(0, 0, 0, 0.4);
+            padding-top: 0;
+        }
+
+        #annotation-detail-container .preview-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+        }
     </style>
     <div id="annotation-view-container">
     </div>
@@ -115,12 +138,13 @@ class annotationViewElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open" });
         this.annotationsData = [];
+        this.annotationData = {};
 
         // Event Listeners
     }
 
     static get observedAttributes() {
-        return ['layout-mode', 'annotations-data'];
+        return ['layout-mode', 'annotations-data', 'annotation-data'];
     }
 
 
@@ -149,6 +173,10 @@ class annotationViewElement extends HTMLElement {
             this.annotationsData = JSON.parse(newValue);
             this.renderAnnotations();
         }
+        else if (name === "annotation-data") {
+            this.annotationData = JSON.parse(newValue);
+            this.renderAnnotation();
+        }
 
     }
 
@@ -176,6 +204,16 @@ class annotationViewElement extends HTMLElement {
             this.annotationsData.forEach(annotation => {
                 const card = document.createElement('div');
                 card.className = 'card';
+                card.setAttribute('data-annotation-id', annotation.id);
+                card.addEventListener('click', () => {
+                    this.dispatchEvent(new CustomEvent('annotation-selected', {
+                        detail: {
+                            annotationData: annotation
+                        },
+                        bubbles: true,
+                        composed: true
+                    }));
+                });
                 card.innerHTML = `
                     <div class="pos-col">${annotation.pos}</div>
                     <div class="content-col">
@@ -222,6 +260,71 @@ class annotationViewElement extends HTMLElement {
             });
             table.appendChild(tbody);
             container.appendChild(table);
+        }
+    }
+
+    renderAnnotation = () => {
+        // Implementation for rendering a single annotation based on this.annotationData
+        const container = this.shadow.getElementById("annotation-view-container");
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (this.mode === 'mobile') {
+            let annotationDetailContainerElement = document.createElement('div');
+            annotationDetailContainerElement.id = 'annotation-detail-container';
+            annotationDetailContainerElement.innerHTML = `<h1>${this.annotationData.title}</h1>`
+
+            let detailsRowElement = document.createElement('div');
+            detailsRowElement.className = 'details-row';
+            detailsRowElement.innerHTML = `
+                <div class="details-item">${this.annotationData.categories}</div>
+                <div class="details-item">Prio. ${this.annotationData.priority}</div>
+                <div class="details-item"><edirom-icon name='description' color="rgba(0, 0, 0, 0.2)" size="20"></edirom-icon>${this.annotationData.sigla}</div>
+            `;
+            annotationDetailContainerElement.appendChild(detailsRowElement);
+
+            let textElement = document.createElement('p');
+            textElement.innerHTML = this.annotationData.text;
+            annotationDetailContainerElement.appendChild(textElement);
+
+            let previewsContainerElement = document.createElement('div');
+            previewsContainerElement.id = 'previews-container';
+            this.annotationData.previews.forEach(preview => {
+                let previewContainerElement = document.createElement('div');
+                previewContainerElement.className = 'preview-container';
+                let previewHeaderElement = document.createElement('h3');
+                previewHeaderElement.textContent = `${preview.siglum} (${preview.source}) ${preview.label}`;
+                previewContainerElement.appendChild(previewHeaderElement);
+
+                // Only render image if preview type is not 'text' (text previews have content instead of images)
+                if (preview.type !== 'text') {
+                    let previewImageElement = document.createElement('img');
+                    previewImageElement.classList.add('preview-image');
+
+                    // Construct the IIIF Image API URL for the preview image
+                    // Format: {baseUrl}/{x},{y},{width},{height}/{size},/0/default.jpg
+                    // - digilibBaseParams: Base URL of the IIIF image server (e.g., "https://digital.blb-karlsruhe.de/blbihd/i3f/v20/6295251")
+                    // - hiddenData contains the region coordinates (x, y) and dimensions (width, height) for cropping
+                    // - 600 is the target width for the scaled image (height is proportional)
+                    // - /0/default.jpg specifies no rotation, default quality, and JPEG format
+                    const { x, y, width, height } = preview.hiddenData;
+                    const previewImageSize = 600; // Target width in pixels for preview images
+                    const imageSrc = `${preview.digilibBaseParams}/${x},${y},${width},${height}/${previewImageSize},/0/default.jpg`;
+
+                    previewImageElement.src = imageSrc;
+                    previewImageElement.alt = `${preview.siglum}: ${preview.label}`;
+                    previewContainerElement.appendChild(previewImageElement);
+                } else {
+                    // For text-type previews, render the content as HTML
+                    let previewContentElement = document.createElement('div');
+                    previewContentElement.className = 'preview-content';
+                    previewContentElement.innerHTML = preview.content;
+                    previewContainerElement.appendChild(previewContentElement);
+                }
+
+                annotationDetailContainerElement.appendChild(previewContainerElement);
+            });
+            container.appendChild(annotationDetailContainerElement);
         }
     }
 }
