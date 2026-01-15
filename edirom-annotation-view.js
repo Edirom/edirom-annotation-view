@@ -178,6 +178,7 @@ class annotationViewElement extends HTMLElement {
     // Wird ausgeführt, wenn Attributwert sich ändert und initial
     attributeChangedCallback(name, oldValue, newValue) {
         console.log(`Attribute: ${name} changed from ${oldValue} to ${newValue}`);
+        if (oldValue === newValue) return;
         if (name === "layout-mode") {
             this.mode = this.getLayoutMode(newValue);
             this.applyTemplate();
