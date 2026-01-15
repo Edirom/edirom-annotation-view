@@ -140,6 +140,9 @@ const templates = {
 
 
 class annotationViewElement extends HTMLElement {
+    // Private backing field for currentPage state
+    #currentPage = 'annotations';
+
     constructor() {
         super();
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
@@ -150,23 +153,33 @@ class annotationViewElement extends HTMLElement {
         // Defaults to 'openseadragon' if not specified
         this.imageServer = this.getAttribute('image-server') || 'openseadragon';
         this.annotationsScrollTop = 0;
-        this.currentPage = '';
-
 
         // Event Listeners
     }
 
-    static get observedAttributes() {
-        return ['layout-mode', 'annotations-data', 'annotation-data', 'image-server'];
+    // Property getter/setter with attribute reflection (best practice for Web Components)
+    get currentPage() {
+        return this.#currentPage;
     }
 
+    set currentPage(value) {
+        console.log("switchPage because Setter");
+        this.switchPage(value);
+    }
+
+    static get observedAttributes() {
+        return ['layout-mode', 'annotations-data', 'annotation-data', 'image-server', 'current-page'];
+    }
 
     // Gets exectuted when the element is added to the DOM
     connectedCallback() {
         console.log("Annotation View connected to DOM.");
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.applyTemplate();
-        this.renderAnnotations();
+        // Initialize from attribute or use default
+        const initialPage = this.getAttribute('current-page') || 'annotations';
+        this.#currentPage = initialPage; // Set directly to avoid triggering setter before render
+        this.renderCurrentPage();
         this.addEventListener('back-request', this.handleBackRequest);
     }
 
@@ -177,29 +190,36 @@ class annotationViewElement extends HTMLElement {
 
     // Wird ausgeführt, wenn Attributwert sich ändert und initial
     attributeChangedCallback(name, oldValue, newValue) {
-        console.log(`Attribute: ${name} changed from ${oldValue} to ${newValue}`);
+        // console.log(`Attribute: ${name} changed from ${oldValue} to ${newValue}`);
         if (oldValue === newValue) return;
         if (name === "layout-mode") {
             this.mode = this.getLayoutMode(newValue);
             this.applyTemplate();
-            this.renderAnnotations();
+            console.log("switchPage because layout-mode change");
+            this.switchPage(this.currentPage);
         }
         else if (name === "annotations-data") {
             this.annotationsData = JSON.parse(newValue);
-            this.renderAnnotations();
         }
         else if (name === "annotation-data") {
             this.annotationData = JSON.parse(newValue);
-            this.renderAnnotation();
         }
         else if (name === "image-server") {
             // Update image server type and re-render if annotation data exists
             this.imageServer = newValue || 'openseadragon';
             if (Object.keys(this.annotationData).length > 0) {
-                this.renderAnnotation();
+                console.log("switchPage because image-server change");
+                this.switchPage(this.currentPage);
             }
         }
-
+        else if (name === "current-page") {
+            // Only call switchPage if attribute differs from internal state
+            // (prevents double-call when switchPage itself updates the attribute)
+            if (this.#currentPage !== newValue) {
+                console.log("switchPage because current-page attribute change");
+                this.switchPage(newValue);
+            }
+        }
     }
 
     // Event handler for cancelable back requests from the host app
@@ -210,9 +230,49 @@ class annotationViewElement extends HTMLElement {
         } else if (this.currentPage === 'annotation') {
             // On annotation detail page, go back to annotations list
             event.preventDefault();
-            this.renderAnnotations();
+            console.log("switchPage because back-request");
+            this.switchPage('annotations');
         }
     };
+
+    // Central method for all page switching - handles validation, scroll, state, and rendering
+    switchPage(page) {
+        console.log("Switching to page:", page);
+        const validPages = ['annotations', 'annotation'];
+
+        // Invalid value: reset attribute to current valid page and return
+        if (!validPages.includes(page)) {
+            if (this.getAttribute('current-page') !== this.#currentPage) {
+                this.setAttribute('current-page', this.#currentPage);
+            }
+            return;
+        }
+
+        // Save scroll position when leaving annotations page
+        if (page === 'annotation' && this.#currentPage === 'annotations') {
+            this.annotationsScrollTop = this.scrollTop;
+        }
+
+        // Update internal state
+        this.#currentPage = page;
+
+        // Reflect to attribute (allows external observation)
+        if (this.getAttribute('current-page') !== page) {
+            this.setAttribute('current-page', page);
+        }
+
+        // Render the new page
+        this.renderCurrentPage();
+    }
+
+    // Internal method to render based on current state
+    renderCurrentPage() {
+        if (this.currentPage === 'annotations') {
+            this.renderAnnotations();
+        } else if (this.currentPage === 'annotation') {
+            this.renderAnnotation();
+        }
+    }
 
     getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
 
@@ -298,18 +358,12 @@ class annotationViewElement extends HTMLElement {
 
         // Restore the scroll position of the annotations list when returning from details
         this.scrollTop = this.annotationsScrollTop;
-        this.currentPage = 'annotations';
     }
 
     renderAnnotation = () => {
         // Implementation for rendering a single annotation based on this.annotationData
         const container = this.shadow.getElementById("annotation-view-container");
         if (!container) return;
-
-        // Persist the list scroll position before navigating to the detail view
-        if (this.currentPage === 'annotations') {
-            this.annotationsScrollTop = this.scrollTop;
-        }
 
         container.innerHTML = '';
 
@@ -388,7 +442,6 @@ class annotationViewElement extends HTMLElement {
 
         // Always start the detail view at the top
         this.scrollTop = 0;
-        this.currentPage = 'annotation';
     }
 
 }
