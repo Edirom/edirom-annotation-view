@@ -149,6 +149,8 @@ class annotationViewElement extends HTMLElement {
         // Image server type: 'openseadragon' (IIIF) or 'digilib'
         // Defaults to 'openseadragon' if not specified
         this.imageServer = this.getAttribute('image-server') || 'openseadragon';
+        this.currentPage = '';
+
 
         // Event Listeners
     }
@@ -164,10 +166,12 @@ class annotationViewElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.applyTemplate();
         this.renderAnnotations();
+        this.addEventListener('back-request', this.handleBackRequest);
     }
 
     disconnectedCallback() {
         console.log("Annotation View disconnected from DOM.");
+        this.removeEventListener('back-request', this.handleBackRequest);
     }
 
     // Wird ausgeführt, wenn Attributwert sich ändert und initial
@@ -196,6 +200,18 @@ class annotationViewElement extends HTMLElement {
         }
 
     }
+
+    // Event handler for cancelable back requests from the host app
+    handleBackRequest = (event) => {
+        if (this.currentPage === 'annotations') {
+            // Already on annotations list, allow default back behavior
+            return;
+        } else if (this.currentPage === 'annotation') {
+            // On annotation detail page, go back to annotations list
+            event.preventDefault();
+            this.renderAnnotations();
+        }
+    };
 
     getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
 
@@ -278,6 +294,8 @@ class annotationViewElement extends HTMLElement {
             table.appendChild(tbody);
             container.appendChild(table);
         }
+
+        this.currentPage = 'annotations';
     }
 
     renderAnnotation = () => {
@@ -358,7 +376,10 @@ class annotationViewElement extends HTMLElement {
             });
             container.appendChild(annotationDetailContainerElement);
         }
+
+        this.currentPage = 'annotation';
     }
+
 }
 
 customElements.define("edirom-annotation-view", annotationViewElement)
