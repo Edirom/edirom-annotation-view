@@ -163,7 +163,6 @@ class annotationViewElement extends HTMLElement {
     }
 
     set currentPage(value) {
-        console.log("switchPage because Setter");
         this.switchPage(value);
     }
 
@@ -190,33 +189,35 @@ class annotationViewElement extends HTMLElement {
 
     // Wird ausgeführt, wenn Attributwert sich ändert und initial
     attributeChangedCallback(name, oldValue, newValue) {
-        // console.log(`Attribute: ${name} changed from ${oldValue} to ${newValue}`);
         if (oldValue === newValue) return;
         if (name === "layout-mode") {
             this.mode = this.getLayoutMode(newValue);
             this.applyTemplate();
-            console.log("switchPage because layout-mode change");
             this.switchPage(this.currentPage);
         }
         else if (name === "annotations-data") {
             this.annotationsData = JSON.parse(newValue);
+            if (this.currentPage === 'annotations') {
+                this.renderAnnotations();
+            }
         }
         else if (name === "annotation-data") {
             this.annotationData = JSON.parse(newValue);
+            if (this.currentPage === 'annotation') {
+                this.renderAnnotation();
+            }
         }
         else if (name === "image-server") {
             // Update image server type and re-render if annotation data exists
             this.imageServer = newValue || 'openseadragon';
-            if (Object.keys(this.annotationData).length > 0) {
-                console.log("switchPage because image-server change");
-                this.switchPage(this.currentPage);
+            if (this.currentPage === 'annotation' && Object.keys(this.annotationData).length > 0) {
+                this.renderAnnotation();
             }
         }
         else if (name === "current-page") {
             // Only call switchPage if attribute differs from internal state
             // (prevents double-call when switchPage itself updates the attribute)
             if (this.#currentPage !== newValue) {
-                console.log("switchPage because current-page attribute change");
                 this.switchPage(newValue);
             }
         }
@@ -230,7 +231,6 @@ class annotationViewElement extends HTMLElement {
         } else if (this.currentPage === 'annotation') {
             // On annotation detail page, go back to annotations list
             event.preventDefault();
-            console.log("switchPage because back-request");
             this.switchPage('annotations');
         }
     };
