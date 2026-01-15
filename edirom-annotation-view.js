@@ -149,6 +149,7 @@ class annotationViewElement extends HTMLElement {
         // Image server type: 'openseadragon' (IIIF) or 'digilib'
         // Defaults to 'openseadragon' if not specified
         this.imageServer = this.getAttribute('image-server') || 'openseadragon';
+        this.annotationsScrollTop = 0;
         this.currentPage = '';
 
 
@@ -294,6 +295,8 @@ class annotationViewElement extends HTMLElement {
             container.appendChild(table);
         }
 
+        // Restore the scroll position of the annotations list when returning from details
+        this.scrollTop = this.annotationsScrollTop;
         this.currentPage = 'annotations';
     }
 
@@ -301,6 +304,12 @@ class annotationViewElement extends HTMLElement {
         // Implementation for rendering a single annotation based on this.annotationData
         const container = this.shadow.getElementById("annotation-view-container");
         if (!container) return;
+
+        // Persist the list scroll position before navigating to the detail view
+        if (this.currentPage === 'annotations') {
+            this.annotationsScrollTop = this.scrollTop;
+        }
+
         container.innerHTML = '';
 
         if (this.mode === 'mobile') {
@@ -376,6 +385,8 @@ class annotationViewElement extends HTMLElement {
             container.appendChild(annotationDetailContainerElement);
         }
 
+        // Always start the detail view at the top
+        this.scrollTop = 0;
         this.currentPage = 'annotation';
     }
 
