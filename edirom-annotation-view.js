@@ -148,6 +148,8 @@ class annotationViewElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open" });
         this.annotationsData = [];
+        this.annotationsDataSubset = null;
+        this.subsetLock = 'unlocked';
         this.annotationData = {};
         // Image server type: 'openseadragon' (IIIF) or 'digilib'
         // Defaults to 'openseadragon' if not specified
@@ -167,13 +169,14 @@ class annotationViewElement extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ['layout-mode', 'annotations-data', 'annotation-data', 'image-server', 'current-page'];
+        return ['layout-mode', 'annotations-data', 'annotations-data-subset', 'subset-lock', 'annotation-data', 'image-server', 'current-page'];
     }
 
     // Gets exectuted when the element is added to the DOM
     connectedCallback() {
         console.log("Annotation View connected to DOM.");
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
+        this.subsetLock = this.getAttribute('subset-lock') === 'locked' ? 'locked' : 'unlocked';
         this.applyTemplate();
         // Initialize from attribute or use default
         const initialPage = this.getAttribute('current-page') || 'annotations';
@@ -196,7 +199,19 @@ class annotationViewElement extends HTMLElement {
             this.switchPage(this.currentPage);
         }
         else if (name === "annotations-data") {
-            this.annotationsData = JSON.parse(newValue);
+            this.annotationsData = newValue ? JSON.parse(newValue) : [];
+            if (this.currentPage === 'annotations') {
+                this.renderAnnotations();
+            }
+        }
+        else if (name === "annotations-data-subset") {
+            this.annotationsDataSubset = newValue ? JSON.parse(newValue) : null;
+            if (this.currentPage === 'annotations') {
+                this.renderAnnotations();
+            }
+        }
+        else if (name === "subset-lock") {
+            this.subsetLock = newValue === 'locked' ? 'locked' : 'unlocked';
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
@@ -274,6 +289,13 @@ class annotationViewElement extends HTMLElement {
         }
     }
 
+    get effectiveAnnotationsData() {
+        if (this.annotationsDataSubset !== null && this.subsetLock === 'locked') {
+            return this.annotationsDataSubset;
+        }
+        return this.annotationsData;
+    }
+
     getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
 
     applyTemplate = () => {
@@ -295,7 +317,7 @@ class annotationViewElement extends HTMLElement {
             container.appendChild(annotationsHeader);
             let annotationsContainerElement = document.createElement('div');
             annotationsContainerElement.id = 'annotations-container';
-            this.annotationsData.forEach(annotation => {
+            this.effectiveAnnotationsData.forEach(annotation => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.setAttribute('data-annotation-id', annotation.id);
@@ -341,7 +363,7 @@ class annotationViewElement extends HTMLElement {
             table.appendChild(thead);
 
             const tbody = document.createElement('tbody');
-            this.annotationsData.forEach(annotation => {
+            this.effectiveAnnotationsData.forEach(annotation => {
                 const row = document.createElement('tr');
                 [annotation.pos, annotation.title, annotation.categories, annotation.priority, annotation.sigla].forEach(text => {
                     const td = document.createElement('td');
