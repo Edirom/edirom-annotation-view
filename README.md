@@ -124,6 +124,27 @@ Controls whether the `annotations-data-subset` is used instead of the full `anno
 - `unlocked` (default): Always displays the full `annotations-data`.
 - `locked`: Displays only the `annotations-data-subset` if it is set.
 
+Whenever `subsetLockState` changes, a [`subset-lock-changed`](#subset-lock-changed) event is dispatched.
+
+---
+
+### `subsetLockState` (Read-only Property)
+
+Returns the resolved lock state, taking into account whether `annotations-data-subset` is available.
+
+**Possible Values:**
+
+- `null`: No `annotations-data-subset` is set. The lock state is irrelevant.
+- `'unlocked'`: A subset is set, but the full `annotations-data` is currently displayed.
+- `'locked'`: A subset is set and it is currently the active data source.
+
+**Example:**
+
+```javascript
+const view = document.querySelector('edirom-annotation-view');
+console.log(view.subsetLockState); // null | 'unlocked' | 'locked'
+```
+
 ---
 
 ### `image-server` (Attribute / Property)
@@ -167,6 +188,39 @@ document
       JSON.stringify(e.detail.annotationData),
     );
     nav.setAttribute("current-page", "annotation");
+  });
+```
+
+---
+
+### `subset-lock-changed`
+
+Dispatched whenever [`subsetLockState`](#subsetlockstate-read-only-property) changes. This covers all meaningful transitions: subset data becoming available or being cleared, and the lock being toggled while subset data is present.
+
+The event is **not** fired on initial mount. It is also **not** fired when `subset-lock` changes while no `annotations-data-subset` is set — `subsetLockState` stays `null` in that case, so nothing changed.
+
+The detail value always mirrors [`subsetLockState`](#subsetlockstate-read-only-property) at the moment the event fires.
+
+**Event Detail:**
+
+```javascript
+{ value: null | 'locked' | 'unlocked' }
+```
+
+- `'locked'`: The subset is now the active data source.
+- `'unlocked'`: The full dataset is now the active data source, but `annotations-data-subset` is still set.
+- `null`: The full dataset is now the active data source and `annotations-data-subset` has been cleared.
+
+**Example:**
+
+```javascript
+document
+  .querySelector("edirom-annotation-view")
+  .addEventListener("subset-lock-changed", (e) => {
+    console.log("Data source changed:", e.detail.value);
+    // 'locked'   → subset is now active
+    // 'unlocked' → full dataset is active, subset data still present
+    // null       → full dataset is active, subset data was cleared
   });
 ```
 

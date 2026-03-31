@@ -142,6 +142,7 @@ const templates = {
 class annotationViewElement extends HTMLElement {
     // Private backing field for currentPage state
     #currentPage = 'annotations';
+    #lastDataSource = undefined;
 
     constructor() {
         super();
@@ -157,6 +158,13 @@ class annotationViewElement extends HTMLElement {
         this.annotationsScrollTop = 0;
 
         // Event Listeners
+    }
+
+    // Read-only getter exposing the resolved subset lock state to external consumers.
+    // Returns null when no annotations-data-subset is set, regardless of subset-lock.
+    get subsetLockState() {
+        if (this.annotationsDataSubset === null) return null;
+        return this.subsetLock;
     }
 
     // Property getter/setter with attribute reflection (best practice for Web Components)
@@ -177,6 +185,7 @@ class annotationViewElement extends HTMLElement {
         console.log("Annotation View connected to DOM.");
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.subsetLock = this.getAttribute('subset-lock') === 'locked' ? 'locked' : 'unlocked';
+        this.#checkAndDispatchSubsetLockEvent();
         this.applyTemplate();
         // Initialize from attribute or use default
         const initialPage = this.getAttribute('current-page') || 'annotations';
@@ -206,12 +215,14 @@ class annotationViewElement extends HTMLElement {
         }
         else if (name === "annotations-data-subset") {
             this.annotationsDataSubset = newValue ? JSON.parse(newValue) : null;
+            this.#checkAndDispatchSubsetLockEvent();
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
         }
         else if (name === "subset-lock") {
             this.subsetLock = newValue === 'locked' ? 'locked' : 'unlocked';
+            this.#checkAndDispatchSubsetLockEvent();
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
@@ -294,6 +305,23 @@ class annotationViewElement extends HTMLElement {
             return this.annotationsDataSubset;
         }
         return this.annotationsData;
+    }
+
+    #checkAndDispatchSubsetLockEvent() {
+        const currentState = this.subsetLockState;
+        if (this.#lastDataSource === undefined) {
+            this.#lastDataSource = currentState;
+            return;
+        }
+        if (currentState !== this.#lastDataSource) {
+            this.#lastDataSource = currentState;
+            console.log("Dispatching subset-lock-changed event with value:", currentState);
+            this.dispatchEvent(new CustomEvent('subset-lock-changed', {
+                bubbles: true,
+                composed: true,
+                detail: { value: currentState }
+            }));
+        }
     }
 
     getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
