@@ -226,6 +226,76 @@ document
 
 ---
 
+### `current-page-changed`
+
+Dispatched whenever the component switches between pages (e.g. from `annotations` list to `annotation` detail, or vice versa). Fires after the new page has been rendered.
+
+The event is **not** fired on initial mount.
+
+**Event Detail:**
+
+```javascript
+{ value: 'annotations' | 'annotation' }
+```
+
+**Example:**
+
+```javascript
+document
+  .querySelector("edirom-annotation-view")
+  .addEventListener("current-page-changed", (e) => {
+    console.log("Page changed to:", e.detail.value);
+  });
+```
+
+---
+
+### `effective-annotations-data-changed`
+
+Dispatched whenever the effective annotations data changes. This happens when `annotations-data` is set, `annotations-data-subset` is set or cleared, or `subset-lock` is toggled — provided the change actually results in a different data source being used.
+
+The event is **not** fired on initial mount.
+
+**Event Detail:**
+
+```javascript
+{ annotations: [ /* effective annotations array */ ] }
+```
+
+**Example:**
+
+```javascript
+document
+  .querySelector("edirom-annotation-view")
+  .addEventListener("effective-annotations-data-changed", (e) => {
+    console.log("Effective data changed:", e.detail.annotations);
+  });
+```
+
+---
+
+### `annotation-data-changed`
+
+Dispatched whenever the `annotation-data` attribute is set with a new value. This tells listeners which annotation is now being displayed (or about to be displayed) in the detail view.
+
+**Event Detail:**
+
+```javascript
+{ annotationData: { id: "…", pos: "…", title: "…", … } }
+```
+
+**Example:**
+
+```javascript
+document
+  .querySelector("edirom-annotation-view")
+  .addEventListener("annotation-data-changed", (e) => {
+    console.log("Annotation data changed:", e.detail.annotationData);
+  });
+```
+
+---
+
 ### `back-request` (Consumed)
 
 This event is **listened for** by the component (not dispatched by it). When the host application dispatches a `back-request` event and the component is on the `annotation` detail page, it calls `event.preventDefault()` and navigates back to the `annotations` list page instead. If already on the list page, the event propagates normally.

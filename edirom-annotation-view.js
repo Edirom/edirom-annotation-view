@@ -143,6 +143,7 @@ class annotationViewElement extends HTMLElement {
     // Private backing field for currentPage state
     #currentPage = 'annotations';
     #lastDataSource = undefined;
+    #lastEffectiveData = undefined;
 
     constructor() {
         super();
@@ -209,6 +210,7 @@ class annotationViewElement extends HTMLElement {
         }
         else if (name === "annotations-data") {
             this.annotationsData = newValue ? JSON.parse(newValue) : [];
+            this.#checkAndDispatchEffectiveDataEvent();
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
@@ -216,6 +218,7 @@ class annotationViewElement extends HTMLElement {
         else if (name === "annotations-data-subset") {
             this.annotationsDataSubset = newValue ? JSON.parse(newValue) : null;
             this.#checkAndDispatchSubsetLockEvent();
+            this.#checkAndDispatchEffectiveDataEvent();
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
@@ -223,6 +226,7 @@ class annotationViewElement extends HTMLElement {
         else if (name === "subset-lock") {
             this.subsetLock = newValue === 'locked' ? 'locked' : 'unlocked';
             this.#checkAndDispatchSubsetLockEvent();
+            this.#checkAndDispatchEffectiveDataEvent();
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
@@ -232,6 +236,11 @@ class annotationViewElement extends HTMLElement {
             if (this.currentPage === 'annotation') {
                 this.renderAnnotation();
             }
+            this.dispatchEvent(new CustomEvent("annotation-data-changed", {
+                detail: { annotationData: this.annotationData },
+                bubbles: true,
+                composed: true
+            }));
         }
         else if (name === "image-server") {
             // Update image server type and re-render if annotation data exists
@@ -289,6 +298,13 @@ class annotationViewElement extends HTMLElement {
 
         // Render the new page
         this.renderCurrentPage();
+
+        // Notify host app of page change
+        this.dispatchEvent(new CustomEvent('current-page-changed', {
+            bubbles: true,
+            composed: true,
+            detail: { value: page }
+        }));
     }
 
     // Internal method to render based on current state
@@ -305,6 +321,23 @@ class annotationViewElement extends HTMLElement {
             return this.annotationsDataSubset;
         }
         return this.annotationsData;
+    }
+
+    #checkAndDispatchEffectiveDataEvent() {
+        const currentData = this.effectiveAnnotationsData;
+        if (this.#lastEffectiveData === undefined) {
+            this.#lastEffectiveData = currentData;
+            return;
+        }
+        if (currentData !== this.#lastEffectiveData) {
+            this.#lastEffectiveData = currentData;
+            console.log("Dispatching effective-annotations-data-changed event.");
+            this.dispatchEvent(new CustomEvent('effective-annotations-data-changed', {
+                bubbles: true,
+                composed: true,
+                detail: { annotations: currentData }
+            }));
+        }
     }
 
     #checkAndDispatchSubsetLockEvent() {
