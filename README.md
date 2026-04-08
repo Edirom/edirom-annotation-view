@@ -10,7 +10,6 @@ It supports two layout modes: `desktop` and `mobile`. In `desktop` mode annotati
 
 - **Two-Page Navigation**: Switches between an annotation list page (`annotations`) and a single annotation detail page (`annotation`).
 - **Responsive Layout**: `desktop` mode renders a structured table; `mobile` mode renders cards with a detail view including source previews.
-- **Subset Filtering**: A subset of the full annotations list can be injected and optionally locked, so only the subset is displayed regardless of the full dataset.
 - **Image Server Support**: Annotation previews support both IIIF (OpenSeadragon) and Digilib image server URL formats.
 - **Scroll Restoration**: Restores the scroll position of the annotations list when navigating back from the detail view.
 - **Back Navigation Hook**: Listens for a `back-request` event from the host application and intercepts it to navigate from the detail page back to the list.
@@ -109,44 +108,6 @@ Controls which page is currently displayed. The attribute is kept in sync with t
 
 ---
 
-### `annotations-data-subset` (Attribute / Property)
-
-An optional filtered subset of `annotations-data` to display instead of the full list. Expects the same JSON structure as `annotations-data`. Takes effect only when `subset-lock` is `locked`.
-
----
-
-### `subset-lock` (Attribute / Property)
-
-Controls whether the `annotations-data-subset` is used instead of the full `annotations-data`.
-
-**Possible Values:**
-
-- `unlocked` (default): Always displays the full `annotations-data`.
-- `locked`: Displays only the `annotations-data-subset` if it is set.
-
-Whenever `subsetLockState` changes, a [`subset-lock-changed`](#subset-lock-changed) event is dispatched.
-
----
-
-### `subsetLockState` (Read-only Property)
-
-Returns the resolved lock state, taking into account whether `annotations-data-subset` is available.
-
-**Possible Values:**
-
-- `null`: No `annotations-data-subset` is set. The lock state is irrelevant.
-- `'unlocked'`: A subset is set, but the full `annotations-data` is currently displayed.
-- `'locked'`: A subset is set and it is currently the active data source.
-
-**Example:**
-
-```javascript
-const view = document.querySelector('edirom-annotation-view');
-console.log(view.subsetLockState); // null | 'unlocked' | 'locked'
-```
-
----
-
 ### `image-server` (Attribute / Property)
 
 Specifies the image server type used to construct preview image URLs on the annotation detail page.
@@ -193,39 +154,6 @@ document
 
 ---
 
-### `subset-lock-changed`
-
-Dispatched whenever [`subsetLockState`](#subsetlockstate-read-only-property) changes. This covers all meaningful transitions: subset data becoming available or being cleared, and the lock being toggled while subset data is present.
-
-The event is **not** fired on initial mount. It is also **not** fired when `subset-lock` changes while no `annotations-data-subset` is set — `subsetLockState` stays `null` in that case, so nothing changed.
-
-The detail value always mirrors [`subsetLockState`](#subsetlockstate-read-only-property) at the moment the event fires.
-
-**Event Detail:**
-
-```javascript
-{ value: null | 'locked' | 'unlocked' }
-```
-
-- `'locked'`: The subset is now the active data source.
-- `'unlocked'`: The full dataset is now the active data source, but `annotations-data-subset` is still set.
-- `null`: The full dataset is now the active data source and `annotations-data-subset` has been cleared.
-
-**Example:**
-
-```javascript
-document
-  .querySelector("edirom-annotation-view")
-  .addEventListener("subset-lock-changed", (e) => {
-    console.log("Data source changed:", e.detail.value);
-    // 'locked'   → subset is now active
-    // 'unlocked' → full dataset is active, subset data still present
-    // null       → full dataset is active, subset data was cleared
-  });
-```
-
----
-
 ### `current-page-changed`
 
 Dispatched whenever the component switches between pages (e.g. from `annotations` list to `annotation` detail, or vice versa). Fires after the new page has been rendered.
@@ -245,30 +173,6 @@ document
   .querySelector("edirom-annotation-view")
   .addEventListener("current-page-changed", (e) => {
     console.log("Page changed to:", e.detail.value);
-  });
-```
-
----
-
-### `effective-annotations-data-changed`
-
-Dispatched whenever the effective annotations data changes. This happens when `annotations-data` is set, `annotations-data-subset` is set or cleared, or `subset-lock` is toggled — provided the change actually results in a different data source being used.
-
-The event is **not** fired on initial mount.
-
-**Event Detail:**
-
-```javascript
-{ annotations: [ /* effective annotations array */ ] }
-```
-
-**Example:**
-
-```javascript
-document
-  .querySelector("edirom-annotation-view")
-  .addEventListener("effective-annotations-data-changed", (e) => {
-    console.log("Effective data changed:", e.detail.annotations);
   });
 ```
 

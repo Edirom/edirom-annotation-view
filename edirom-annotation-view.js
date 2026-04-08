@@ -142,16 +142,12 @@ const templates = {
 class annotationViewElement extends HTMLElement {
     // Private backing field for currentPage state
     #currentPage = 'annotations';
-    #lastDataSource = undefined;
-    #lastEffectiveData = undefined;
 
     constructor() {
         super();
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open" });
         this.annotationsData = [];
-        this.annotationsDataSubset = null;
-        this.subsetLock = 'unlocked';
         this.annotationData = {};
         // Image server type: 'openseadragon' (IIIF) or 'digilib'
         // Defaults to 'openseadragon' if not specified
@@ -159,13 +155,6 @@ class annotationViewElement extends HTMLElement {
         this.annotationsScrollTop = 0;
 
         // Event Listeners
-    }
-
-    // Read-only getter exposing the resolved subset lock state to external consumers.
-    // Returns null when no annotations-data-subset is set, regardless of subset-lock.
-    get subsetLockState() {
-        if (this.annotationsDataSubset === null) return null;
-        return this.subsetLock;
     }
 
     // Property getter/setter with attribute reflection (best practice for Web Components)
@@ -178,15 +167,13 @@ class annotationViewElement extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ['layout-mode', 'annotations-data', 'annotations-data-subset', 'subset-lock', 'annotation-data', 'image-server', 'current-page'];
+        return ['layout-mode', 'annotations-data', 'annotation-data', 'image-server', 'current-page'];
     }
 
     // Gets exectuted when the element is added to the DOM
     connectedCallback() {
         console.log("Annotation View connected to DOM.");
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
-        this.subsetLock = this.getAttribute('subset-lock') === 'locked' ? 'locked' : 'unlocked';
-        this.#checkAndDispatchSubsetLockEvent();
         this.applyTemplate();
         // Initialize from attribute or use default
         const initialPage = this.getAttribute('current-page') || 'annotations';
@@ -210,23 +197,6 @@ class annotationViewElement extends HTMLElement {
         }
         else if (name === "annotations-data") {
             this.annotationsData = newValue ? JSON.parse(newValue) : [];
-            this.#checkAndDispatchEffectiveDataEvent();
-            if (this.currentPage === 'annotations') {
-                this.renderAnnotations();
-            }
-        }
-        else if (name === "annotations-data-subset") {
-            this.annotationsDataSubset = newValue ? JSON.parse(newValue) : null;
-            this.#checkAndDispatchSubsetLockEvent();
-            this.#checkAndDispatchEffectiveDataEvent();
-            if (this.currentPage === 'annotations') {
-                this.renderAnnotations();
-            }
-        }
-        else if (name === "subset-lock") {
-            this.subsetLock = newValue === 'locked' ? 'locked' : 'unlocked';
-            this.#checkAndDispatchSubsetLockEvent();
-            this.#checkAndDispatchEffectiveDataEvent();
             if (this.currentPage === 'annotations') {
                 this.renderAnnotations();
             }
@@ -316,47 +286,6 @@ class annotationViewElement extends HTMLElement {
         }
     }
 
-    get effectiveAnnotationsData() {
-        if (this.annotationsDataSubset !== null && this.subsetLock === 'locked') {
-            return this.annotationsDataSubset;
-        }
-        return this.annotationsData;
-    }
-
-    #checkAndDispatchEffectiveDataEvent() {
-        const currentData = this.effectiveAnnotationsData;
-        if (this.#lastEffectiveData === undefined) {
-            this.#lastEffectiveData = currentData;
-            return;
-        }
-        if (currentData !== this.#lastEffectiveData) {
-            this.#lastEffectiveData = currentData;
-            console.log("Dispatching effective-annotations-data-changed event.");
-            this.dispatchEvent(new CustomEvent('effective-annotations-data-changed', {
-                bubbles: true,
-                composed: true,
-                detail: { annotations: currentData }
-            }));
-        }
-    }
-
-    #checkAndDispatchSubsetLockEvent() {
-        const currentState = this.subsetLockState;
-        if (this.#lastDataSource === undefined) {
-            this.#lastDataSource = currentState;
-            return;
-        }
-        if (currentState !== this.#lastDataSource) {
-            this.#lastDataSource = currentState;
-            console.log("Dispatching subset-lock-changed event with value:", currentState);
-            this.dispatchEvent(new CustomEvent('subset-lock-changed', {
-                bubbles: true,
-                composed: true,
-                detail: { value: currentState }
-            }));
-        }
-    }
-
     getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
 
     applyTemplate = () => {
@@ -378,7 +307,7 @@ class annotationViewElement extends HTMLElement {
             container.appendChild(annotationsHeader);
             let annotationsContainerElement = document.createElement('div');
             annotationsContainerElement.id = 'annotations-container';
-            this.effectiveAnnotationsData.forEach(annotation => {
+            this.annotationsData.forEach(annotation => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.setAttribute('data-annotation-id', annotation.id);
@@ -424,7 +353,7 @@ class annotationViewElement extends HTMLElement {
             table.appendChild(thead);
 
             const tbody = document.createElement('tbody');
-            this.effectiveAnnotationsData.forEach(annotation => {
+            this.annotationsData.forEach(annotation => {
                 const row = document.createElement('tr');
                 [annotation.pos, annotation.title, annotation.categories, annotation.priority, annotation.sigla].forEach(text => {
                     const td = document.createElement('td');
