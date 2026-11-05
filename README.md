@@ -216,6 +216,16 @@ Ensure that the `edirom-icon` component is registered and available in your envi
 
 ---
 
+## Styling
+
+Mobile layout only; themed via CSS custom properties inherited into the shadow DOM. Borders, the position column background, secondary text and icons are derived from the primary colour with `color-mix()`.
+
+| Custom property | Default | Description |
+|---|---|---|
+| `--primary-color` | `#333333` | Base colour for borders, secondary text and icons |
+
+Card backgrounds are transparent, so they take the background of the surrounding page.
+
 ## Usage Example
 
 ```html

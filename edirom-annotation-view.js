@@ -24,8 +24,10 @@ const templates = {
     mobile: `<div>
     <style>
         :host {
-            --primary-color: #a3a3a3ff;
-            --secondary-color: #565656ff;
+            --_av-primary: var(--primary-color, #333333);
+            --_av-border: color-mix(in oklch, var(--_av-primary) 20%, transparent);
+            --_av-muted: color-mix(in oklch, var(--_av-primary) 40%, transparent);
+            --_av-faint: color-mix(in oklch, var(--_av-primary) 20%, transparent);
             height: 100%;
             width: 100%;
             max-width: 100%;
@@ -50,7 +52,7 @@ const templates = {
             padding-right: 10px;
         }
         .card {
-            border: 1px solid #ccc;
+            border: 1px solid var(--_av-border);
             border-radius: 15px;
             margin-bottom: 15px;
             display: flex;
@@ -66,10 +68,10 @@ const templates = {
             align-items: center;
             justify-content: center;
             font-size: 1.1rem;
-            border-right: 1px solid #ccc;
+            border-right: 1px solid var(--_av-border);
             border-top-left-radius: 15px;
             border-bottom-left-radius: 15px;
-            background-color: #f9f9f9;
+            background-color: color-mix(in oklch, var(--_av-primary) 4%, transparent);
             user-select: none;
             -webkit-user-select: none;
         }
@@ -79,7 +81,7 @@ const templates = {
             flex-direction: column;
         }
         .title-row {
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid var(--_av-border);
             padding: 10px;
             font-weight: bold;
             user-select: none;
@@ -122,7 +124,7 @@ const templates = {
             margin-bottom: 13px;
         }
         #annotation-detail-container .details-row {
-            color: rgba(0, 0, 0, 0.4);
+            color: var(--_av-muted);
             padding-top: 0;
         }
 
@@ -335,7 +337,7 @@ class annotationViewElement extends HTMLElement {
                         <div class="details-row">
                             <div class="details-item">${annotation.categories}</div>
                             <div class="details-item">Prio. ${annotation.priority}</div>
-                            <div class="details-item"><edirom-icon name='description' color="rgba(0, 0, 0, 0.2)" size="20"></edirom-icon>${annotation.sigla}</div>
+                            <div class="details-item"><edirom-icon name='description' color="var(--_av-faint, rgba(0, 0, 0, 0.2))" size="20"></edirom-icon>${annotation.sigla}</div>
                         </div>
                     </div>
                 `;
@@ -352,7 +354,7 @@ class annotationViewElement extends HTMLElement {
             ['Nr.', 'Titel', 'Kategorien', 'Priorität', 'Quelle'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
-                th.style.border = '1px solid #ccc';
+                th.style.border = '1px solid var(--_av-border, #ccc)';
                 th.style.padding = '8px';
                 th.style.textAlign = 'left';
                 tr.appendChild(th);
@@ -366,7 +368,7 @@ class annotationViewElement extends HTMLElement {
                 [annotation.pos, annotation.title, annotation.categories, annotation.priority, annotation.sigla].forEach(text => {
                     const td = document.createElement('td');
                     td.textContent = text;
-                    td.style.border = '1px solid #ccc';
+                    td.style.border = '1px solid var(--_av-border, #ccc)';
                     td.style.padding = '8px';
                     row.appendChild(td);
                 });
@@ -397,7 +399,7 @@ class annotationViewElement extends HTMLElement {
             detailsRowElement.innerHTML = `
                 <div class="details-item">${this.annotationData.categories}</div>
                 <div class="details-item">Prio. ${this.annotationData.priority}</div>
-                <div class="details-item"><edirom-icon name='description' color="rgba(0, 0, 0, 0.2)" size="20"></edirom-icon>${this.annotationData.sigla}</div>
+                <div class="details-item"><edirom-icon name='description' color="var(--_av-faint, rgba(0, 0, 0, 0.2))" size="20"></edirom-icon>${this.annotationData.sigla}</div>
             `;
             annotationDetailContainerElement.appendChild(detailsRowElement);
 
